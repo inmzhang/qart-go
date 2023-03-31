@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func analyseMode(message string) (mode int) {
+func analyseMode(message string) int {
 	allInNumeric := true
 	allInAlphanumeric := true
 	for _, char := range message {
@@ -16,24 +16,23 @@ func analyseMode(message string) (mode int) {
 		if !strings.ContainsRune(AlphanumericList, char) {
 			allInAlphanumeric = false
 		}
-	}
-	if allInNumeric {
-		mode = Numeric
-	} else if allInAlphanumeric {
-		mode = Alphanumeric
-	} else {
-		mode = Byte
-	}
-	return
-}
-
-func adjustVersion(version int, mode int, ecl int, messageLength int) int {
-	for i := 0; i < 40; i++ {
-		if CharCap[ecl][i][mode] > messageLength && version < i+1 {
-			return i + 1
+		if !allInNumeric && !allInAlphanumeric {
+			return Byte
 		}
 	}
-	return 40
+	if allInNumeric {
+		return Numeric
+	}
+	return Alphanumeric
+}
+
+func adjustVersion(targetVersion int, mode int, ecl int, messageLength int) int {
+	for version := targetVersion; version <= MaxVersion; version++ {
+		if CharCap[ecl][version-1][mode] >= messageLength {
+			return version
+		}
+	}
+	return MaxVersion
 }
 
 func numericalEncoding(message string) (string, error) {
