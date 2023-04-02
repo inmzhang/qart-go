@@ -10,9 +10,9 @@ func ECCEncode(version int, ecl int, dataCodeword [][]int) (ecc [][]int) {
 
 func getECC(dataCodeword []int, numECC int) (codeword []int) {
 	generatorPoly := GeneratorPoly[numECC]
-	codeword = dataCodeword
+	codeword = makeCopySlice(dataCodeword)
 	for i := 0; i < len(dataCodeword); i++ {
-		codeword = divide(codeword, generatorPoly)
+		codeword = divide(codeword, makeCopySlice(generatorPoly))
 	}
 	return
 }
@@ -43,4 +43,10 @@ func xor(messagePoly []int, generatorPoly []int) (remainder []int) {
 		remainder = append(remainder, messagePoly[i]^generatorPoly[i])
 	}
 	return
+}
+
+func makeCopySlice(slice []int) []int {
+	newSlice := make([]int, len(slice))
+	copy(newSlice, slice)
+	return newSlice
 }
