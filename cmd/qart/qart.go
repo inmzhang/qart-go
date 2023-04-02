@@ -9,13 +9,17 @@ import (
 )
 
 func main() {
-	var version int
-	var ecl int
-	var name string
-	var dir string
+	var version, ecl int
+	var name, dir, picPath string
+	var colorized bool
+	var contrast, brightness float64
+
 	wd, _ := os.Getwd()
 
 	app := &cli.App{
+		Name:        "qart",
+		Description: "A go implementation of QR-Code generator and artistic picture embedding.",
+		Suggest:     true,
 		Flags: []cli.Flag{
 			&cli.IntFlag{
 				Name:        "version",
@@ -45,12 +49,43 @@ func main() {
 				Value:       wd,
 				Destination: &dir,
 			},
+			&cli.StringFlag{
+				Name:        "picture",
+				Aliases:     []string{"p"},
+				Usage:       "The path to the picture to be embedded in the QR-Code.",
+				Destination: &picPath,
+			},
+			&cli.BoolFlag{
+				Name:        "colorized",
+				Aliases:     []string{"c"},
+				Usage:       "Whether to colorize the QR-Code.",
+				Destination: &colorized,
+			},
+			&cli.Float64Flag{
+				Name:        "contrast",
+				Aliases:     []string{"con"},
+				Value:       1.0,
+				Usage:       "A floating point value controlling the enhancement of contrast. Factor 1.0 always returns a copy of the original image, lower factors mean less color (brightness, contrast, etc), and higher values more.",
+				Destination: &contrast,
+			},
+			&cli.Float64Flag{
+				Name:        "brightness",
+				Aliases:     []string{"bri"},
+				Value:       1.0,
+				Usage:       "A floating point value controlling the enhancement of brightness. Factor 1.0 always returns a copy of the original image, lower factors mean less color (brightness, contrast, etc), and higher values more.",
+				Destination: &brightness,
+			},
 		},
 		Action: func(cCtx *cli.Context) error {
 			if cCtx.NArg() == 0 {
-				log.Fatal("No message provided")
+				log.Fatal("No message provided, please input a message to be encoded.")
 			}
 			message := cCtx.Args().Get(0)
+			if picPath != "" {
+				config := qart.ArtConfig{Path: picPath, Colorized: colorized, Contrast: contrast, Brightness: brightness}
+				qart.ArtQRCode(version, ecl, message, filepath.Join(dir, name), config)
+				return nil
+			}
 			qart.BasicQRCode(version, ecl, message, filepath.Join(dir, name))
 			return nil
 		},
@@ -59,4 +94,6 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+	//config := qart.ArtConfig{Path: "C:\\GoProgramming\\qart-go\\cmd\\qart\\surface.png", Colorized: true, Contrast: 1.5, Brightness: 1.0}
+	//qart.ArtQRCode(1, 3, "https://zhuanlan.zhihu.com/p/387753099", "qrcode.png", config)
 }
