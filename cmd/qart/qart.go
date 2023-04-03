@@ -38,8 +38,7 @@ func main() {
 			&cli.StringFlag{
 				Name:        "name",
 				Aliases:     []string{"n"},
-				Usage:       "The filename of output tailed with one of {'.jpg', '.png', '.bmp', '.gif'}.",
-				Value:       "qrcode.png",
+				Usage:       "The filename of output tailed with one of {'.jpg', '.png', '.gif'}. Default to `qrcode` with the same extension as the background picture.",
 				Destination: &name,
 			},
 			&cli.StringFlag{
@@ -82,9 +81,15 @@ func main() {
 			}
 			message := cCtx.Args().Get(0)
 			if picPath != "" {
+				if name == "" {
+					name = "qrcode" + filepath.Ext(picPath)
+				}
 				config := qart.ArtConfig{Path: picPath, Colorized: colorized, Contrast: contrast, Brightness: brightness}
 				qart.ArtQRCode(version, ecl, message, filepath.Join(dir, name), config)
 				return nil
+			}
+			if name == "" {
+				name = "qrcode.png"
 			}
 			qart.BasicQRCode(version, ecl, message, filepath.Join(dir, name))
 			return nil
@@ -94,6 +99,6 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-	//config := qart.ArtConfig{Path: "C:\\GoProgramming\\qart-go\\cmd\\qart\\surface.png", Colorized: true, Contrast: 1.5, Brightness: 1.0}
-	//qart.ArtQRCode(1, 3, "https://zhuanlan.zhihu.com/p/387753099", "qrcode.png", config)
+	//config := qart.ArtConfig{Path: "C:\\GoProgramming\\qart-go\\sharingan.gif", Colorized: false, Contrast: 1.5, Brightness: 1.0}
+	//qart.ArtQRCode(20, 3, "https://zhuanlan.zhihu.com/p/387753099", "qrcode.gif", config)
 }

@@ -18,14 +18,21 @@ type ArtConfig struct {
 
 func ArtQRCode(version, ecl int, message, savePath string, config ArtConfig) int {
 	validate(version, ecl, message)
-	validateGif(savePath, config.Path)
 	version, img := getRawQRCode(version, ecl, message)
 	qrImg := img.(*image.NRGBA)
-	picImg := openNRGBA(config.Path)
-	CombineImages(version, qrImg, picImg, config.Colorized, config.Contrast, config.Brightness)
-	saveImg := image.Image(qrImg)
-	saveImg = ScaleImage(3, &saveImg)
-	saveImage(&saveImg, savePath)
+	if strings.HasSuffix(config.Path, "gif") {
+		validateGif(savePath, config.Path)
+		picImg := openGIF(config.Path)
+		combinedGIF := ProcessGif(version, qrImg, picImg, config.Colorized, config.Contrast, config.Brightness)
+		saveGIF(combinedGIF, savePath)
+
+	} else if strings.HasSuffix(config.Path, "png") || strings.HasSuffix(config.Path, "jpeg") {
+		picImg := openNRGBA(config.Path)
+		CombineImages(version, qrImg, picImg, config.Colorized, config.Contrast, config.Brightness)
+		saveImg := image.Image(qrImg)
+		saveImg = ScaleImage(3, &saveImg)
+		saveImage(&saveImg, savePath)
+	}
 	return version
 }
 
@@ -64,14 +71,33 @@ func saveImage(img *image.Image, savePath string) {
 
 	var encodeErr error
 	if strings.HasSuffix(savePath, "png") {
-		encodeErr = jpeg.Encode(file, *img, nil)
-	} else if strings.HasSuffix(savePath, "jpeg") {
 		encodeErr = png.Encode(file, *img)
-	} else if strings.HasSuffix(savePath, "gif") {
-		encodeErr = gif.Encode(file, *img, nil)
 	} else {
-		panic("Unsupported image format")
+		encodeErr = jpeg.Encode(file, *img, nil)
 	}
+	if encodeErr != nil {
+		panic(encodeErr)
+	}
+}
+
+func saveGIF(img *gif.GIF, savePath string) {
+	file, err := os.Create(savePath)
+	if err != nil {
+		panic(err)
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(file)
+
+	err = file.Truncate(0)
+	if err != nil {
+		panic(err)
+	}
+
+	encodeErr := gif.EncodeAll(file, img)
 	if encodeErr != nil {
 		panic(encodeErr)
 	}
@@ -79,7 +105,7 @@ func saveImage(img *image.Image, savePath string) {
 
 func validateGif(savePath, picPath string) {
 	if strings.HasSuffix(picPath, "gif") && !strings.HasSuffix(savePath, "gif") {
-		panic("Unsupported image format")
+		panic("You can only save a gif if you use a gif as the background!")
 	}
 }
 
@@ -98,9 +124,6 @@ func validate(version int, ecl int, message string) {
 }
 
 func openNRGBA(path string) *image.NRGBA {
-	if !strings.HasSuffix(path, "png") && !strings.HasSuffix(path, "jpeg") && !strings.HasSuffix(path, "gif") {
-		panic("Unsupported image format")
-	}
 	file, err := os.Open(path)
 	if err != nil {
 		panic(err)
@@ -117,4 +140,23 @@ func openNRGBA(path string) *image.NRGBA {
 		panic(err)
 	}
 	return img.(*image.NRGBA)
+}
+
+func openGIF(path string) *gif.GIF {
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(file)
+
+	img, err := gif.DecodeAll(file)
+	if err != nil {
+		panic(err)
+	}
+	return img
 }

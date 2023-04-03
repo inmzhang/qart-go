@@ -4,8 +4,34 @@ import (
 	"github.com/disintegration/imaging"
 	"image"
 	"image/color"
+	"image/color/palette"
+	"image/draw"
+	"image/gif"
 	"math"
 )
+
+func ProcessGif(version int, img1 *image.NRGBA, gifImg *gif.GIF, colorized bool, contrast, brightness float64) *gif.GIF {
+	var frames []*image.Paletted
+	for _, frame := range gifImg.Image {
+		img1Copy := image.NewNRGBA(img1.Bounds())
+		draw.Draw(img1Copy, img1Copy.Bounds(), img1, img1.Bounds().Min, draw.Src)
+		img2 := image.NewNRGBA(frame.Bounds())
+		draw.Draw(img2, img2.Bounds(), frame, frame.Bounds().Min, draw.Src)
+		CombineImages(version, img1Copy, img2, colorized, contrast, brightness)
+		img1Copy_ := image.Image(img1Copy)
+		img1Copy_ = ScaleImage(3, &img1Copy_)
+		img1Copy = img1Copy_.(*image.NRGBA)
+		newFrame := image.NewPaletted(img1Copy.Bounds(), palette.Plan9)
+		draw.Draw(newFrame, newFrame.Bounds(), img1Copy, img1.Bounds().Min, draw.Src)
+		frames = append(frames, newFrame)
+	}
+	newGif := &gif.GIF{
+		Image:     frames,
+		Delay:     gifImg.Delay,
+		LoopCount: gifImg.LoopCount,
+	}
+	return newGif
+}
 
 func CombineImages(version int, img1, img2 *image.NRGBA, colorized bool, contrast, brightness float64) {
 	bgImg := imaging.AdjustContrast(img2, toPercentage(contrast))
